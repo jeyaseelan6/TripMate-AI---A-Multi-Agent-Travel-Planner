@@ -46,7 +46,8 @@ async def initialize_mcp():
     if search_tool is not None and aviation_tools:
         return
     
-    tools = await client.get.tools()
+    tools = await client.get_tools()
+
 
     print("\nAvailable MCP Tools:\n")
 
@@ -65,7 +66,12 @@ async def initialize_mcp():
         if tool.name != "tavily_search"
     }
 
+async def get_all_tools():
+    await initialize_mcp()
+
+
 async def tavily_mcp_search(query: str):
+
     await initialize_mcp()
     result = await search_tool.ainvoke(
         {
