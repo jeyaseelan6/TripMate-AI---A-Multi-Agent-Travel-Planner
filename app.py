@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+import anyio
 from backend import run_travel_agent
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -54,10 +55,13 @@ async def travel_planner(request_data: TravelRequest):
                 }
             )
 
-        result = run_travel_agent(
-            user_input=user_message,
-            thread_id=request_data.thread_id
+        result = await anyio.to_thread.run_sync(
+            run_travel_agent,
+            user_message,
+            request_data.thread_id
         )
+
+
 
         return JSONResponse(
             content={

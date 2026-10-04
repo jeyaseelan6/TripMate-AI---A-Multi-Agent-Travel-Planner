@@ -10,6 +10,7 @@ os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 from typing import TypedDict, Annotated
 import operator
 import uuid
+import asyncio
 
 import psycopg
 from psycopg.rows import dict_row
@@ -23,8 +24,9 @@ from langchain_core.messages import (
     SystemMessage
 )
 from langchain_groq import ChatGroq
-from tools.tavily_tool import tavily_search
+#from tools.tavily_tool import tavily_search
 from tools.flight_tool import search_flights
+from mcp_client_test import tavily_mcp_search
 
 def get_database_url():
     database_url = os.getenv("DATABASE_URL")
@@ -40,15 +42,41 @@ def get_database_url():
     
     return database_url
 
+import json
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("GROQ_API_KEY is missing. Please add it to your .env file")
 
 llm = ChatGroq(
-    model = "openai/gpt-oss-120b",
+    model = "openai/gpt-oss-20b",
     api_key = GROQ_API_KEY,
     temperature = 0
 )
+
+def format_mcp_hotel_results(raw_mcp_output, max_items=5, snippet_len=250):
+    try:
+        combined_text = ""
+        if isinstance(raw_mcp_output, list):
+            for block in raw_mcp_output:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    combined_text += block.get("text", "") + "\n"
+        elif isinstance(raw_mcp_output, str):
+            combined_text = raw_mcp_output
+
+        data = json.loads(combined_text)
+        results = data.get("results", [])
+
+        formatted = []
+        for idx, item in enumerate(results[:max_items], 1):
+            title = item.get("title", "Hotel Option")
+            url = item.get("url", "")
+            snippet = item.get("content", "")[:snippet_len].replace("\n", " ")
+            formatted.append(f"{idx}. {title}\n   URL: {url}\n   Info: {snippet}")
+
+        return "\n\n".join(formatted) if formatted else combined_text[:1500]
+    except Exception:
+        return str(raw_mcp_output)[:1500]
 
 class TravelState(TypedDict):
     messages: Annotated[list[AnyMessage], operator.add]
@@ -80,15 +108,19 @@ def flight_agent(state: TravelState):
 
 def hotel_agent(state: TravelState):
     query = f"Best hotels for {state['user_query']}"
-    hotel_results = tavily_search(query)
+    raw_hotel_results = asyncio.run(tavily_mcp_search(query))
+    formatted_hotels = format_mcp_hotel_results(raw_hotel_results)
 
-    return{
-        "hotel_results": hotel_results,
+    return {
+        "hotel_results": formatted_hotels,
         "messages": [
             AIMessage(content="Hotel results fetched")
         ],
         "llm_calls": state.get("llm_calls", 0) + 1
     }
+
+
+
 
 # ==================================
 # Itinerary Agent
