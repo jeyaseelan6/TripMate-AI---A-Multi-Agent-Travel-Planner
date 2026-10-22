@@ -494,6 +494,11 @@ If exact live prices are unavailable, clearly label estimates as approximate.
 # Itinerary Agent - original behavior extended with selected results
 # =========================
 def itinerary_agent(state: TravelState):
+    flights = str(state.get('flight_results', ''))[:2000]
+    hotels = str(state.get('hotel_results', ''))[:2000]
+    weather = str(state.get('weather_results', ''))[:1500]
+    budget = str(state.get('budget_results', ''))[:1500]
+
     prompt = f"""
 Create a complete travel itinerary.
 
@@ -504,16 +509,16 @@ Trip Constraints:
 {state.get('trip_constraints', {})}
 
 Flight Results:
-{state.get('flight_results', '')}
+{flights}
 
 Hotel Results:
-{state.get('hotel_results', '')}
+{hotels}
 
 Weather Results:
-{state.get('weather_results', '')}
+{weather}
 
 Budget Results:
-{state.get('budget_results', '')}
+{budget}
 
 Make the itinerary practical, budget-aware, and easy to follow.
 Create a clear draft that is ready for human review.
@@ -582,6 +587,12 @@ The user requested a revision. Apply this feedback carefully:
 {state.get('human_feedback', '') or 'Improve the draft before finalizing it.'}
 """
 
+    flights = str(state.get('flight_results', ''))[:2000]
+    hotels = str(state.get('hotel_results', ''))[:2000]
+    weather = str(state.get('weather_results', ''))[:1500]
+    budget = str(state.get('budget_results', ''))[:1500]
+    itinerary = str(state.get('itinerary', ''))[:2500]
+
     final_prompt = f"""
 Generate the final travel response for the user.
 
@@ -595,19 +606,19 @@ Supervisor Constraints:
 {state.get('trip_constraints', {})}
 
 Flights:
-{state.get('flight_results', '')}
+{flights}
 
 Hotels:
-{state.get('hotel_results', '')}
+{hotels}
 
 Weather:
-{state.get('weather_results', '')}
+{weather}
 
 Budget Analysis:
-{state.get('budget_results', '')}
+{budget}
 
 Draft Itinerary:
-{state.get('itinerary', '')}
+{itinerary}
 
 Format the final answer beautifully using these sections:
 1. Trip Summary

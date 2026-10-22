@@ -1,0 +1,16 @@
+.gcloudignore
+.git
+.gitignore
+.env
+.env.*
+*.env
+.env.cloudrun.yaml
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+*.log
+deploy-cloudrun.ps1
