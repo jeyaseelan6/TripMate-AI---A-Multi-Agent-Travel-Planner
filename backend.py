@@ -521,36 +521,48 @@ def human_approval_agent(state: TravelState):
 
 
 
-# =======================================
-# Final Response Agent
-# =======================================
-
+# =========================
+# Final Response Agent - original format kept, HITL feedback added
+# =========================
 def final_agent(state: TravelState):
-    flights_summary = str(state.get("flight_results", ""))[:1000]
-    hotels_summary = str(state.get("hotel_results", ""))[:1000]
-    weather_summary = str(state.get("weather_results", ""))[:800]
-    itinerary_summary = str(state.get("itinerary", ""))[:2500]
+    if state.get("approved", False):
+        review_instruction = (
+            "The user approved the draft. Preserve its decisions while polishing it."
+        )
+    else:
+        review_instruction = f"""
+The user requested a revision. Apply this feedback carefully:
+{state.get('human_feedback', '') or 'Improve the draft before finalizing it.'}
+"""
 
     final_prompt = f"""
 Generate the final travel response for the user.
 
+Human Review:
+{review_instruction}
+
 User Request:
 {state['user_query']}
 
+Supervisor Constraints:
+{state.get('trip_constraints', {})}
+
 Flights:
-{flights_summary}
+{state.get('flight_results', '')}
 
 Hotels:
-{hotels_summary}
+{state.get('hotel_results', '')}
 
 Weather:
-{weather_summary}
+{state.get('weather_results', '')}
 
-Itinerary:
-{itinerary_summary}
+Budget Analysis:
+{state.get('budget_results', '')}
+
+Draft Itinerary:
+{state.get('itinerary', '')}
 
 Format the final answer beautifully using these sections:
-
 1. Trip Summary
 2. Flight Information
 3. Hotel Suggestions
@@ -561,21 +573,26 @@ Format the final answer beautifully using these sections:
 
 Important:
 - Be clear and practical.
-- Mention that live flight API may not provide ticket prices if pricing is unavailable.
+- Mention that live flight APIs may not provide ticket prices when pricing is unavailable.
 - Include weather-based travel advice.
 - Keep the response useful for real travel planning.
+- Incorporate the human feedback when revision was requested.
 """
 
-    response = llm.invoke([
-        SystemMessage(content="You are a professional AI travel booking assistant."),
-        HumanMessage(content=final_prompt)
-    ])
+    response = llm.invoke(
+        [
+            SystemMessage(
+                content="You are a professional AI travel booking assistant."
+            ),
+            HumanMessage(content=final_prompt),
+        ]
+    )
 
     return {
+        "final_response": response.content,
         "messages": [response],
-        "llm_calls": state.get("llm_calls", 0) + 1
+        "llm_calls": state.get("llm_calls", 0) + 1,
     }
-
 
 # =======================================
 # Build Graph
