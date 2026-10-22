@@ -1,3 +1,9 @@
+from click import prompt
+from groq.types import batch_cancel_response
+from groq.types import batch_cancel_response
+from groq.types import batch_cancel_response
+from groq.types import batch_cancel_response
+from groq.types import batch_cancel_response
 import os
 import certifi
 from dotenv import load_dotenv
@@ -250,15 +256,17 @@ User request:
         reasoning = str(parsed.get("reasoning", "")).strip()
         llm_calls += 1
     except Exception as exc:
-        print(f"Supervisor fallback used:{exc}")
-        # Original workflow behavior is preserved as the fallback.
+        print(f"Guardrail fallback used:{exc}")
+        allowed = True
+        guardrail_reason = "Guardrail validation fallback allowed the request."
+        #Original workflow behavior is preserved as the fallback.
         selected_agents = AGENT_ORDER.copy()
         constraints = _empty_constraints()
         reasoning = (
             "Supervisor parsing failed, so the original full travel workflow "
             "was selected as a safe fallback."
         )
-    
+
     return {
         "guardrail_allowed": True,
         "guardrail_reason": guardrail_reason,
@@ -357,11 +365,11 @@ def flight_agent(state: TravelState):
 
 def hotel_agent(state: TravelState):
     query = f"Best hotels for {state['user_query']}"
-    raw_hotel_results = asyncio.run(tavily_mcp_search(query))
-    formatted_hotels = format_mcp_hotel_results(raw_hotel_results)
+    hotel_results = asyncio.run(tavily_mcp_search(query))
+    
 
     return {
-        "hotel_results": formatted_hotels,
+        "hotel_results": hotel_results,
         "messages": [
             AIMessage(content="Hotel results fetched")
         ],
@@ -373,71 +381,114 @@ def hotel_agent(state: TravelState):
 # ================================
 
 def weather_agent(state: TravelState):
-
     city = extract_destination(state["user_query"])
+    weather_data = asyncio.run(weather_mcp_search(city))
+    forecast_data = asyncio.run(forecast_mcp_search(city))
 
-    weather_data = asyncio.run(
-        weather_mcp_search(city)
-    )
+    return{
+        "weather_results": f"""
+Current Weather:
+{weather_data}
 
-    forecast_data = asyncio.run(
-        forecast_mcp_search(city)
+Forecast:
+{forecast_data}
+""",
+        "message": [AIMessage(content="Weather information fetched")],
+    }
+   
+
+# =========================================
+# Budget Agent - new specialist
+# ========================================
+def budget_agent(state: TravelState):
+    prompt = f"""
+Analyze whetherr this trip is realistic for the user's budget.
+
+User Query:
+{state['user_query']}
+
+Trip Constraints:
+{state.get('trip_constraints', {})}
+
+Flight Results:
+{state.get('flight_results', '')}
+
+Hotel Results:
+{state.get('hotel_results', '')}
+
+Weather Results:
+{state.get('weather_results', '')}
+
+Return:
+1. Estimated cost categories
+2. Budget risk areas
+3. Money-saving suggestions
+4. Overall feasibility
+
+If exact live prices are unavailable, clearly label estimates as approximate.
+"""
+
+    response = llm.invoke(
+        [
+            SystemMessage(content="You are a practical travel budget analyst."),
+            HumanMessage(content=prompt),
+        ]
     )
 
     return {
-        "weather_results": f"""
-        Current Weather:
-        {weather_data}
-
-        Forecast:
-        {forecast_data}
-        """,
-        "messages": [
-            AIMessage(
-                content="Weather information fetched"
-            )
-        ]
+        "budget_results": response.content,
+        "messages": [AIMessage(content="Budget assesment generated.")],
+        "llm_calls": state.get("llm_calls", 0) + 1,
     }
 
-
-# ==================================
-# Itinerary Agent
-# ==================================
-
+# =========================
+# Itinerary Agent - original behavior extended with selected results
+# =========================
 def itinerary_agent(state: TravelState):
-    flights_summary = str(state.get("flight_results", ""))[:1000]
-    hotels_summary = str(state.get("hotel_results", ""))[:1000]
-    weather_summary = str(state.get("weather_results", ""))[:800]
-
     prompt = f"""
 Create a complete travel itinerary.
 
 User Query:
 {state['user_query']}
 
-Flight Information:
-{flights_summary}
+Trip Constraints:
+{state.get('trip_constraints', {})}
 
-Hotel Information:
-{hotels_summary}
+Flight Results:
+{state.get('flight_results', '')}
 
-Weather Information:
-{weather_summary}
+Hotel Results:
+{state.get('hotel_results', '')}
+
+Weather Results:
+{state.get('weather_results', '')}
+
+Budget Results:
+{state.get('budget_results', '')}
 
 Make the itinerary practical, budget-aware, and easy to follow.
+Create a clear draft that is ready for human review.
 """
 
-    response = llm.invoke([
-        SystemMessage(content="You are an expert travel planner."),
-        HumanMessage(content=prompt)
-    ])
+    response = llm.invoke(
+        [
+            SystemMessage(content="You are an expert travel planner."),
+            HumanMessage(content=prompt),
+        ]
+    )
+
+    approval_request = (
+        "Please review the generated draft itinerary. Approve it to create the "
+        "final polished plan, or provide feedback for revision."
+    )
 
     return {
         "itinerary": response.content,
-        "messages": [response],
-        "llm_calls": state.get("llm_calls", 0) + 1
+        "approval_request": approval_request,
+        "messages": [AIMessage(content="Draft itinerary created for human review.")],
+        "llm_calls": state.get("llm_calls", 0) + 1,
     }
-
+    
 # =======================================
 # Final Response Agent
 # =======================================
