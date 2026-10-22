@@ -89,7 +89,7 @@ body {
 }
 
 .hero-section p {
-    max-width: 760px;
+    max-width: 800px;
     margin: 0 auto;
     color: #cbd5e1;
     font-size: 1.1rem;
@@ -97,7 +97,9 @@ body {
 }
 
 .planner-card,
-.result-section {
+.workflow-section,
+.result-section,
+.approval-section {
     background: rgba(15, 23, 42, 0.76);
     border: 1px solid rgba(148, 163, 184, 0.26);
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
@@ -105,12 +107,22 @@ body {
     border-radius: 28px;
 }
 
-.planner-card {
+.planner-card,
+.workflow-section,
+.result-section,
+.approval-section {
     padding: 28px;
 }
 
+.workflow-section,
+.result-section,
+.approval-section {
+    margin-top: 26px;
+}
+
 .card-header,
-.result-header {
+.result-header,
+.workflow-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -119,13 +131,16 @@ body {
 }
 
 .card-header h2,
-.result-header h2 {
+.result-header h2,
+.workflow-header h2,
+.approval-content h2 {
     font-size: 1.45rem;
     margin-bottom: 8px;
 }
 
 .card-header p,
-.result-header p {
+.result-header p,
+.approval-content p {
     color: #94a3b8;
     line-height: 1.5;
 }
@@ -202,7 +217,9 @@ textarea::placeholder {
     box-shadow: 0 22px 50px rgba(124, 58, 237, 0.4);
 }
 
-#sendBtn:disabled {
+#sendBtn:disabled,
+.approve-btn:disabled,
+.revise-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -230,9 +247,53 @@ textarea::placeholder {
     border-color: rgba(96, 165, 250, 0.5);
 }
 
-.result-section {
-    margin-top: 26px;
-    padding: 28px;
+.eyebrow {
+    display: inline-block;
+    margin-bottom: 7px;
+    color: #93c5fd;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.guardrail-badge {
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.12);
+    color: #86efac;
+    padding: 9px 13px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.guardrail-badge.blocked {
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.13);
+    color: #fecaca;
+}
+
+.supervisor-reasoning {
+    color: #cbd5e1;
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+.agent-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.agent-chip {
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    background: rgba(37, 99, 235, 0.13);
+    color: #dbeafe;
+    font-size: 0.9rem;
+    font-weight: 750;
 }
 
 .result-actions {
@@ -320,10 +381,8 @@ textarea::placeholder {
 .result-box h2 {
     font-size: 1.45rem;
     border-left: 5px solid #2563eb;
-    padding-left: 12px;
+    padding: 10px 0 10px 12px;
     background: #eff6ff;
-    padding-top: 10px;
-    padding-bottom: 10px;
     border-radius: 10px;
 }
 
@@ -380,6 +439,66 @@ textarea::placeholder {
     font-weight: 800;
 }
 
+.approval-section {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: linear-gradient(135deg,
+            rgba(120, 53, 15, 0.25),
+            rgba(15, 23, 42, 0.82));
+}
+
+.approval-icon {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    font-size: 1.5rem;
+}
+
+.feedback-input {
+    min-height: 105px;
+    margin-top: 18px;
+    border-radius: 16px;
+}
+
+.approval-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.approve-btn,
+.revise-btn {
+    border: none;
+    border-radius: 13px;
+    padding: 12px 18px;
+    color: #ffffff;
+    font-weight: 850;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.approve-btn {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    box-shadow: 0 12px 28px rgba(34, 197, 94, 0.25);
+}
+
+.revise-btn {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 12px 28px rgba(245, 158, 11, 0.22);
+}
+
+.approve-btn:hover,
+.revise-btn:hover {
+    transform: translateY(-1px);
+}
+
 .error-box {
     margin-top: 22px;
     padding: 18px 20px;
@@ -401,7 +520,7 @@ textarea::placeholder {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 footer {
@@ -423,6 +542,8 @@ footer {
     }
 
     .planner-card,
+    .workflow-section,
+    .approval-section,
     .hero-section,
     footer,
     .result-actions,
@@ -447,13 +568,16 @@ footer {
     }
 
     .planner-card,
-    .result-section {
+    .workflow-section,
+    .result-section,
+    .approval-section {
         padding: 20px;
         border-radius: 22px;
     }
 
     .card-header,
-    .result-header {
+    .result-header,
+    .workflow-header {
         flex-direction: column;
     }
 
@@ -469,16 +593,23 @@ footer {
         font-size: 1rem;
     }
 
-    .result-actions {
+    .result-actions,
+    .approval-actions {
         width: 100%;
     }
 
     .copy-btn,
-    .download-btn {
+    .download-btn,
+    .approve-btn,
+    .revise-btn {
         flex: 1;
     }
 
     .pdf-content {
         padding: 20px;
+    }
+
+    .approval-section {
+        grid-template-columns: 1fr;
     }
 }
